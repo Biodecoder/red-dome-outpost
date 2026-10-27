@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Red Dome Outpost — Build a Mars Colony. Survive Storms. Repel Raiders.</title>
+    <link rel="icon" type="image/png" href="./assets/icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!-- 3D WebGL Viewport -->
+    <canvas id="game-canvas" aria-label="Red Dome Outpost 3D Mars Colony Viewport"></canvas>
+
+    <!-- Red Alert Vignette Overlay (Visible during Alien Raider UFO Attack) -->
+    <div id="raid-vignette" class="raid-vignette hidden" aria-hidden="true"></div>
+
+    <!-- HUD Overlay -->
+    <div id="hud-root" class="hud-root">
+      <!-- Top Bar: 7 Resource Pills + Sol Counter & Control Strip -->
+      <header class="top-bar">
+        <div class="resource-pills" role="status" aria-label="Colony Resources">
+          <!-- 1. Ore -->
+          <div id="pill-ore" class="res-pill" title="Available Ore stockpile">
+            <span class="res-icon icon-ore" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 21 7 21 17 12 22 3 17 3 7" />
+                <polyline points="3 7 12 12 21 7" />
+                <line x1="12" y1="12" x2="12" y2="22" />
+              </svg>
+            </span>
+            <div class="res-content">
+              <span id="val-ore" class="res-value">574</span>
+              <span class="res-sub">ore</span>
+            </div>
+          </div>
+
+          <!-- 2. Power -->
+          <div id="pill-pwr" class="res-pill" title="Net Power balance (Solar vs. Consumption)">
+            <span class="res-icon icon-pwr" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polygon points="13 2 4 14 11 14 10 22 20 10 13 10 13 2" />
+              </svg>
+            </span>
+            <div class="res-content">
+              <span id="val-pwr" class="res-value">-3.8</span>
+              <span class="res-sub">pwr</span>
+            </div>
+          </div>
+
+          <!-- 3. Oxygen -->
+          <div id="pill-o2" class="res-pill" title="Dome Oxygen Saturation">
+            <span class="res-icon icon-o2" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="8" cy="12" r="4" />
+                <circle cx="16" cy="12" r="4" />
+              </svg>
+            </span>
+            <div class="res-content">
+              <span id="val-o2" class="res-value">52%</span>
+              <div class="res-bar-track">
+                <div id="bar-o2" class="res-bar-fill fill-o2" style="width: 52%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Water -->
+          <div id="pill-h2o" class="res-pill" title="Net Water Rate & Reserves">
+            <span class="res-icon icon-h2o" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+              </svg>
+            </span>
+            <div class="res-content">
+              <span id="val-h2o" class="res-value">-0.8</span>
+              <span class="res-sub">h2o</span>
+            </div>
+          </div>
+
+          <!-- 5. Food -->
+          <div id="pill-food" class="res-pill" title="Colony Food Supply">
+            <span class="res-icon icon-food" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 22V10" />
+                <path d="M18 6c-4 0-6 3-6 6 0-3-2-6-6-6 0 4 2 6 6 6 4 0 6-2 6-6z" />
+              </svg>
+            </span>
+            <div class="res-content">
+              <span id="val-food" class="res-value">56%</span>
+              <div class="res-bar-track">
+                <div id="bar-food" class="res-bar-fill fill-food" style="width: 56%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. Crew -->
+          <div id="pill-crew" class="res-pill" title="Colonists / Habitat Capacity (Click Hub to Expand)">
+            <span class="res-icon icon-crew" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7" />
+              </svg>
+            </span>
+            <div class="res-content">
+              <span id="val-crew" class="res-value">14/8</span>
+              <span class="res-sub">crew</span>
+            </div>
+          </div>
+
+          <!-- 7. Dome Integrity -->
+          <div id="pill-dome" class="res-pill" title="Geodesic Glass Dome Integrity">
+            <span class="res-icon icon-dome" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </span>
+            <div class="res-content">
+              <span id="val-dome" class="res-value">100%</span>
+              <div class="res-bar-track">
+                <div id="bar-dome" class="res-bar-fill fill-dome" style="width: 100%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top-Right Sol Pill & Action Controls -->
+        <div class="top-right-cluster">
+          <div class="sol-row">
+            <div id="pill-sol" class="sol-pill" title="Current Martian Sol">
+              <span class="sol-sun-icon" aria-hidden="true">☀</span>
+              <span id="val-sol">SOL 2</span>
+            </div>
+          </div>
+
+          <div class="control-strip">
+            <span id="saved-indicator" class="saved-label">Saved</span>
+            <button id="btn-pause" class="ctrl-btn icon-ctrl" title="Pause / Resume (Space)">
+              II
+            </button>
+            <button id="btn-speed" class="ctrl-btn icon-ctrl" title="Cycle Simulation Speed (1× / 2× / 3×)">
+              1×
+            </button>
+            <button id="btn-help" class="ctrl-btn text-ctrl" title="Open Astro's Outpost Guide">
+              HELP
+            </button>
+            <button id="btn-new-game" class="ctrl-btn text-ctrl" title="Choose Chapter, Endless Mode, or Practice Yard">
+              NEW GAME
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Left Stacked Mission & Completed Goals Cards -->
+      <aside class="left-cards-stack">
+        <section id="mission-card" class="hud-card mission-card" aria-live="polite">
+          <div class="card-kicker">
+            <span id="chapter-kicker-num" class="kicker-gold">CHAPTER 2/4</span>
+            <span id="chapter-kicker-title" class="kicker-muted">WEATHER THE STORM</span>
+          </div>
+
+          <div class="objective-row">
+            <span class="objective-bullet" aria-hidden="true">◎</span>
+            <h2 id="objective-title" class="objective-title">Field 2 repair droids</h2>
+            <span id="objective-progress" class="objective-counter">1/2</span>
+          </div>
+
+          <p id="objective-desc" class="objective-desc">
+            Build a second droid bay – more rovers patch faster.
+          </p>
+
+          <div id="bonus-line" class="bonus-line">
+            ★ Bonus: clear in 1:30 · dome ≥75%
+          </div>
+
+          <div id="coaching-banner" class="coaching-banner">
+            Power short – build Solar on a sand pad
+          </div>
+        </section>
+
+        <!-- Secondary Card: Completed Sub-Goals or Astro's Guided Tour -->
+        <section id="secondary-card" class="hud-card secondary-card">
+          <div id="secondary-kicker" class="secondary-kicker">2 GOALS COMPLETE</div>
+          <div id="secondary-title" class="secondary-title">
+            Build a solar array · Build a droid bay
+          </div>
+          <div id="secondary-sub" class="secondary-sub">+30 ore</div>
+        </section>
+
+        <!-- Quick Camera / Sandbox Controls Strip -->
+        <section id="quick-actions-card" class="hud-card quick-actions-card">
+          <button id="btn-select-hub" class="mini-action-btn" title="Select Central Command Hub (Expand Dome)">
+            Hub / Expand
+          </button>
+          <button id="btn-trigger-storm" class="mini-action-btn" title="Test Dust Storm">
+            Dust Storm
+          </button>
+          <button id="btn-trigger-raider" class="mini-action-btn" title="Test Alien Raider UFO">
+            UFO Raid
+          </button>
+        </section>
+      </aside>
+
+      <!-- Bottom-Right Circular 4-Slot Radial Build / Action Ring -->
+      <section
+        id="radial-ring"
+        class="radial-ring"
+        aria-label="Radial Build and Action Ring"
+      >
+        <!-- Slot 1: Top -->
+        <button id="ring-slot-1" class="ring-card pos-top" data-slot="1">
+          <span class="ring-key">1</span>
+          <span id="ring-icon-1" class="ring-icon"></span>
+          <span id="ring-label-1" class="ring-label">Oxygen</span>
+          <span id="ring-cost-1" class="ring-cost">45 ore</span>
+        </button>
+
+        <!-- Slot 2: Right -->
+        <button id="ring-slot-2" class="ring-card pos-right" data-slot="2">
+          <span class="ring-key">2</span>
+          <span id="ring-icon-2" class="ring-icon"></span>
+          <span id="ring-label-2" class="ring-label">Water</span>
+          <span id="ring-cost-2" class="ring-cost">45 ore</span>
+        </button>
+
+        <!-- Slot 3: Bottom -->
+        <button id="ring-slot-3" class="ring-card pos-bottom" data-slot="3">
+          <span class="ring-key">3</span>
+          <span id="ring-icon-3" class="ring-icon"></span>
+          <span id="ring-label-3" class="ring-label">Food</span>
+          <span id="ring-cost-3" class="ring-cost">50 ore</span>
+        </button>
+
+        <!-- Slot 4: Left -->
+        <button id="ring-slot-4" class="ring-card pos-left" data-slot="4">
+          <span class="ring-key">4</span>
+          <span id="ring-icon-4" class="ring-icon"></span>
+          <span id="ring-label-4" class="ring-label">Habitat</span>
+          <span id="ring-cost-4" class="ring-cost">55 ore</span>
+        </button>
+
+        <!-- Center Close / Context Button -->
+        <div class="ring-center">
+          <button id="btn-ring-close" class="ring-close-btn" title="Close Build Ring (Esc)">
+            ×
+          </button>
+          <span id="ring-center-label" class="ring-center-label">Build</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- Modal: New Game / Chapters / Endless / Practice Yard -->
+    <div id="modal-new-game" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div>
+            <span class="kicker-gold">RED DOME OUTPOST</span>
+            <h3>Select Mission or Mode</h3>
+          </div>
+          <button id="btn-close-new-game" class="modal-close-btn" aria-label="Close">×</button>
+        </div>
+
+        <p class="modal-lead">
+          Land on Mars, raise a glass dome, and keep your colony breathing through dust storms and alien raids.
+        </p>
+
+        <div class="mode-grid">
+          <button class="mode-card" data-mode="campaign" data-chapter="chapter_1" data-tour="true">
+            <div class="mode-card-top">
+              <span class="mode-tag">CHAPTER 1/4 + ASTRO TOUR</span>
+              <span id="stars-chapter_1" class="mode-stars">☆☆☆</span>
+            </div>
+            <h4>First Breath (Guided Start)</h4>
+            <p>Land with Astro, learn the 4 core life-support builds, and establish your MK1 outpost.</p>
+          </button>
+
+          <button class="mode-card" data-mode="campaign" data-chapter="chapter_2" data-tour="false">
+            <div class="mode-card-top">
+              <span class="mode-tag">CHAPTER 2/4</span>
+              <span id="stars-chapter_2" class="mode-stars">☆☆☆</span>
+            </div>
+            <h4>Weather the Storm</h4>
+            <p>Fix a power shortage, field 2 repair droid bays, and survive a howling Martian dust storm.</p>
+          </button>
+
+          <button class="mode-card" data-mode="campaign" data-chapter="chapter_3" data-tour="false">
+            <div class="mode-card-top">
+              <span class="mode-tag">CHAPTER 3/4</span>
+              <span id="stars-chapter_3" class="mode-stars">☆☆☆</span>
+            </div>
+            <h4>Repel the Raider</h4>
+            <p>A glowing saucer drops in at night and turns its beam on your colony. Build Defense Towers to fight back!</p>
+          </button>
+
+          <button class="mode-card" data-mode="campaign" data-chapter="chapter_4" data-tour="false">
+            <div class="mode-card-top">
+              <span class="mode-tag">CHAPTER 4/4</span>
+              <span id="stars-chapter_4" class="mode-stars">☆☆☆</span>
+            </div>
+            <h4>Red Dome Metropolis (MK3)</h4>
+            <p>Expand to a sprawling MK3 dome with 19 outdoor pads, rich ore seams, and 18+ thriving colonists.</p>
+          </button>
+
+          <button class="mode-card" data-mode="endless" data-chapter="endless" data-tour="false">
+            <div class="mode-card-top">
+              <span class="mode-tag">ENDLESS MODE</span>
+              <span id="endless-best-badge" class="mode-stars">SOL 1</span>
+            </div>
+            <h4>Endless Outpost</h4>
+            <p>Survive escalating Sols, climb Colony Ranks up to Red Dome Sovereign, and set a permanent record.</p>
+          </button>
+
+          <button class="mode-card" data-mode="practice" data-chapter="practice" data-tour="false">
+            <div class="mode-card-top">
+              <span class="mode-tag">SANDBOX</span>
+              <span class="mode-stars">SAFE</span>
+            </div>
+            <h4>Practice Yard</h4>
+            <p>Experiment freely with generous ore, instant MK3 dome expansion, and on-demand storm/UFO triggers.</p>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Help & Astro's Field Guide -->
+    <div id="modal-help" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div>
+            <span class="kicker-gold">ASTRO'S OUTPOST MANUAL</span>
+            <h3>How to Command Red Dome Outpost</h3>
+          </div>
+          <button id="btn-close-help" class="modal-close-btn" aria-label="Close">×</button>
+        </div>
+
+        <div class="help-columns">
+          <div class="help-col">
+            <h4>Inside the Dome (Square Plates)</h4>
+            <ul>
+              <li><strong>[1] Oxygen Tower (45 ore):</strong> Keeps dome air pressurized.</li>
+              <li><strong>[2] Water Plant (45 ore):</strong> Melts permafrost for crew &amp; farms.</li>
+              <li><strong>[3] Hydroponic Farm (50 ore):</strong> Grows Martian tomatoes for food.</li>
+              <li><strong>[4] Habitat Pod (55 ore):</strong> Adds +4 crew capacity per tier.</li>
+            </ul>
+            <h4>Central Command Hub</h4>
+            <ul>
+              <li>Tap the central tower to <strong>Expand the Dome (MK1 → MK2 → MK3)</strong>, unlocking up to 24 interior plates and 19 outdoor sand pads.</li>
+            </ul>
+          </div>
+
+          <div class="help-col">
+            <h4>Across the Sand (Hex Pads)</h4>
+            <ul>
+              <li><strong>[1] Solar Array (40 ore):</strong> Supplies clean colony power.</li>
+              <li><strong>[2] Ore Rig (50 ore):</strong> Drills ore (+2× output on glowing orange crystal seams!).</li>
+              <li><strong>[3] Droid Bay (60 ore):</strong> Deploys 6-wheeled rovers that weld dome cracks automatically.</li>
+              <li><strong>[4] Defense Tower (65 ore):</strong> Fires plasma bolts at attacking Alien Saucers.</li>
+            </ul>
+            <h4>Controls</h4>
+            <ul>
+              <li><strong>Mouse / Touch:</strong> Tap any plate, pad, or building; drag to orbit camera; scroll to zoom.</li>
+              <li><strong>Keyboard:</strong> <code>1–4</code> trigger Build Ring slots, <code>Tab</code> cycles plates/pads, <code>Space</code> pauses, <code>Esc</code> closes ring.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

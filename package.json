@@ -1,0 +1,10 @@
+{
+  "name": "red-dome-outpost",
+  "version": "1.0.0",
+  "description": "Red Dome Outpost — Build a Mars colony. Survive storms. Repel raiders. (3D WebGL Mars Colony Builder)",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.js"
+  }
+}
